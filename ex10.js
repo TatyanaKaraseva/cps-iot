@@ -7,14 +7,11 @@ console.log("Starting the code");
 
 var board = new firmata.Board("/dev/ttyACM0", function(){ // ACM Abstract Control Model for serial communication with Arduino (could be USB)
     console.log("Connecting to Arduino");
-    console.log("Activation of Pin 13");
-    board.pinMode(13, board.MODES.OUTPUT); // Configures the specified pin to behave either as an input or an output.
-    console.log("Enabling Push Button on pin 2");
-   board.pinMode(2, board.MODES.INPUT);
+    board.pinMode(0, board.MODES.ANALOG);
 });
 
 function handler(req, res) {
-fs.readFile(__dirname + "/ex7.html",
+fs.readFile(__dirname + "/ex10.html",
 function (err, data) {
     if (err) {
         res.writeHead(500, {"Content-Type": "text/plain"});
@@ -26,35 +23,35 @@ function (err, data) {
 
 }
 
+var desiredValue = 0;
+
 http.listen(8080);
 
 var sendValueViaSocket = function(){};
 
 board.on("ready", function() {
+    
+    board.analogRead(0, function(value){
+        desiredValue = value;
+    });
+    
 io.sockets.on("connection", function(socket) {
     socket.emit("messageToClient", "Srv connected, brd OK");
     
-    sendValueViaSocket = function (value) {
-        io.sockets.emit("messageToClient", value);
-    }
+  
+
+    
+   setInterval(sendValues, 40, socket);
 
 });
 
-board.digitalRead(2, function(value) {
-    
-    if (value ==0) {
-        console.log("LED OFF");
-        board.digitalWrite(13, board.LOW);
-        sendValueViaSocket(0);
-        
-    }
-        if (value ==1) {
-        console.log("LED ON");
-        board.digitalWrite(13, board.HIGH);
-        sendValueViaSocket(1);
-        
-    }
-    
-});
+
    
 });
+
+function sendValues (socket) {
+    socket.emit("clientReadValues",
+    {
+        "desiredValue": desiredValue
+    });
+};
